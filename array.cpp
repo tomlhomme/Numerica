@@ -14,7 +14,7 @@ Numerica::Array::Array(std::initializer_list<std::size_t> shape)
 
 Numerica::Array::~Array()
 {
-    delete mShape;
+    delete[] mShape;
 }
 
 void Numerica::Array::print_shape() const
@@ -51,7 +51,8 @@ Numerica::Dense::Dense(std::initializer_list<std::size_t> shape) : Array(shape)
 
 Numerica::Dense::~Dense()
 {
-    delete mData;
+    delete[] mData;
+    delete[] mDummyData;
 }
 
 void Numerica::Dense::print_raw() const
@@ -120,6 +121,7 @@ Numerica::Vec1d::~Vec1d()
 void Numerica::Vec1d::print() const
 {
     print_raw();
+    std::cout << std::endl;
 }
 
 double& Numerica::Vec1d::operator() (const std::size_t ind) const
@@ -165,6 +167,64 @@ double& Numerica::Vec2d::operator() (std::initializer_list<std::size_t> index_li
         "Index out of bounds.");
 
     return mData[*(index_list.begin())*axis_size(1) + *(index_list.begin()+1)];
+}
+
+void Numerica::Vec2d::multiply(Vec1d& out, Vec1d& in)
+{
+    assert(axis_size(1)==in.axis_size(0) && 
+        "Axis 1 of Matrix and 0 of in vector must match.");
+    assert(axis_size(0)==out.axis_size(0) && 
+        "Axis 0 of Matrix and 0 of out vector must match.");
+    /*
+    if (in.mDummyData==NULL)
+        in.mDummyData = new double[axis_size(1)];
+    if (out.mDummyData==NULL)
+        out.mDummyData = new double[axis_size(0)];
+
+    for (std::size_t i=0;i<in.axis_size(0);i++)
+    {
+        in.mDummyData[i]=in(i);
+    }
+    cblas_dgemv(CblasRowMajor, CblasNoTrans, axis_size(0),axis_size(1), 1.,
+        mData,axis_size(1),in.mDummyData,1, 0., out.mDummyData,1);
+    
+    for (std::size_t i=0;i<in.axis_size(1);i++)
+    {
+        out(i)=out.mDummyData[i];
+    }
+    */
+
+   for (std::size_t i=0; i<axis_size(0); i++)
+   {
+        out(i)=0;
+        for (std::size_t j=0; j<axis_size(1); j++)
+        {
+            out(i)+=(*this)(i,j) * in(j);
+            //std::cout << i << " " << j << std::endl;
+        }
+   }
+}
+
+void Numerica::Vec2d::multiply(Vec2d& out, Vec2d& in)
+{
+    assert(axis_size(1)==in.axis_size(0) && 
+        "Axis 1 of Matrix and 0 of in vector must match.");
+    assert(in.axis_size(1)==out.axis_size(1) && 
+        "Axis 0 of Matrix and 0 of out vector must match.");
+    assert(axis_size(0)==out.axis_size(0) && 
+        "Axis 0 of Matrix and 0 of out vector must match.");
+
+    for (std::size_t i=0; i<out.axis_size(0); i++)
+    {
+        for (std::size_t j=0; j<out.axis_size(1); j++)
+        {
+            out(i,j)=0;
+            for (std::size_t k=0; k<in.axis_size(0);k++)
+            {
+                out(i,j)+=(*this)(i,k)*in(k,j);
+            }
+        }
+    }
 }
 
 void Numerica::Vec2d::print() const
@@ -222,3 +282,171 @@ void Numerica::Vec3d::print() const
         std::cout << std::endl;
     }
 }
+
+Numerica::Square::Square(size_t size): Vec2d(size,size)
+{
+}
+
+Numerica::Square::~Square()
+{
+    delete[] ipiv;
+}
+
+void Numerica::Square::solve_A_x_eq_b(Vec1d& result, Vec1d& rhs)
+{
+    assert(result.axis_size(0)==rhs.axis_size(0) && 
+        "Result and rhs must be the same size.");
+    assert(axis_size(0)==result.axis_size(0) &&
+        "Result and matrix must have same first dimension.");
+
+    if (ipiv==NULL)
+        ipiv = new int[axis_size(0)];
+    
+    if (mDummyData==NULL)
+        mDummyData = new double[axis_size(0)*axis_size(1)];
+    
+    if (rhs.mDummyData==NULL)
+        rhs.mDummyData = new double[axis_size(0)];
+
+    for (size_t i=0;i<axis_size(0);i++)
+    {
+        for (size_t j=0;j<axis_size(1);j++)
+        {
+            mDummyData[j+axis_size(0)*i]=mData[j+axis_size(0)*i];
+        }
+    }
+    for (size_t i=0; i<rhs.axis_size(0); i++)
+    {
+        rhs.mDummyData[i]=rhs(i);
+    }
+
+    int info = LAPACKE_dgesv(LAPACK_ROW_MAJOR,axis_size(0),1,mDummyData,
+        axis_size(0),ipiv,rhs.mDummyData,1);
+    
+    if (info!=0)
+        std::cout << "LAPACKE error: " << info << std::endl;
+    for (size_t i=0; i<rhs.axis_size(0); i++)
+    {
+        std::cout<< rhs.mDummyData[i] << std::endl;
+        result(i)=rhs.mDummyData[i];
+    }
+}
+
+Numerica::Banded::Banded(std::size_t sz, std::size_t nbands_up, std::size_t nbands_down): Array({sz,sz})
+{
+    mSize=sz*(2*nbands_down+nbands_up+2);
+    mData = new double[mSize];
+    mBandsUp=nbands_up;
+    mBandsDown=nbands_down;
+
+    for (std::size_t i=0; i<mSize; i++)
+    {
+        mData[i]=0;
+    }
+}
+
+Numerica::Banded::~Banded()
+{
+    delete[] mData;
+    delete[] ipiv;
+}
+
+double& Numerica::Banded::operator() (std::size_t row, std::size_t col) const
+{
+    assert(row<axis_size(0) && col<axis_size(1) &&
+        "Row and column must be within matrix.");
+    assert(row+mBandsUp>=col && row <=col+mBandsDown &&
+        "Row and col values must be within a band.");
+    std::size_t idx=axis_size(0)*(mBandsDown + mBandsUp + row - col) + col;
+    std::cout << "("<< idx <<")" <<"|" <<mSize<<"|";
+    return mData[idx];
+}
+
+std::size_t Numerica::Banded::bands_up()
+{
+    return mBandsUp;
+}
+
+std::size_t Numerica::Banded::bands_down()
+{
+    return mBandsDown;
+}
+
+void Numerica::Banded::solve_Ax_eq_b(Vec1d& result, Vec1d& rhs)
+{
+    assert(result.axis_size(0)==rhs.axis_size(0) && 
+        "Result and rhs must be the same size.");
+    assert(axis_size(0)==result.axis_size(0) &&
+        "Result and matrix must have same first dimension.");
+
+    if (ipiv==NULL)
+        ipiv = new int[axis_size(0)];
+    
+    if (mDummyData==NULL)
+        mDummyData = new double[mSize];
+    
+    if (rhs.mDummyData==NULL)
+        rhs.mDummyData = new double[axis_size(0)];
+
+    for (size_t i=0;i<mSize;i++)
+    {
+        mDummyData[i]=mData[i];
+    }
+    for (size_t i=0; i<rhs.axis_size(0); i++)
+    {
+        rhs.mDummyData[i]=rhs(i);
+    }
+
+    //std::cout << mData << " " << mDummyData << " " << ipiv << " " << rhs.mDummyData << std::endl;
+
+    int info = LAPACKE_dgbsv(LAPACK_ROW_MAJOR,axis_size(0),mBandsDown,mBandsUp,1,mData,axis_size(0),ipiv,rhs.mDummyData,1);
+    
+    if (info!=0)
+        std::cout << "LAPACKE error: " << info << std::endl;
+    for (size_t i=0; i<rhs.axis_size(0); i++)
+    {
+        std::cout<< rhs.mDummyData[i] << std::endl;
+        result(i)=rhs.mDummyData[i];
+    }
+
+}
+
+void Numerica::Banded::print_raw() const
+{
+    for (std::size_t i=0; i<mSize; i++)
+    {
+        std::cout << mData[i] << " ";
+    }
+    std::cout << std::endl;
+}
+
+void Numerica::Banded::print_compact() const
+{
+    for (std::size_t j=0; j<mBandsDown+mBandsUp+1; j++)
+    {
+        for (std::size_t i=0; i<axis_size(1); i++)
+        {
+            std::cout << mData[j+i*(mBandsDown+mBandsUp+1)] << " ";
+        }
+        std::cout << std::endl;
+    }
+}
+
+void Numerica::Banded::print() const
+{
+    for (std::size_t i=0; i<axis_size(0); i++)
+    {
+        for (std::size_t j=0; j<axis_size(1); j++)
+        {
+            if (i+mBandsUp>=j && i <=j+mBandsDown)
+            {
+                std::cout << (*this)(i,j) << " ";
+            } else {
+                std::cout << 0 << " ";
+            }
+        }
+        std::cout << std::endl;
+    }
+}
+
+
