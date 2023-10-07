@@ -325,9 +325,10 @@ void Numerica::Square::solve_A_x_eq_b(Vec1d& result, Vec1d& rhs)
     
     if (info!=0)
         std::cout << "LAPACKE error: " << info << std::endl;
+        
     for (size_t i=0; i<rhs.axis_size(0); i++)
     {
-        std::cout<< rhs.mDummyData[i] << std::endl;
+        //std::cout<< rhs.mDummyData[i] << std::endl;
         result(i)=rhs.mDummyData[i];
     }
 }
@@ -347,6 +348,7 @@ Numerica::Banded::Banded(std::size_t sz, std::size_t nbands_up, std::size_t nban
 
 Numerica::Banded::~Banded()
 {
+    delete[] mDummyData;
     delete[] mData;
     delete[] ipiv;
 }
@@ -358,7 +360,7 @@ double& Numerica::Banded::operator() (std::size_t row, std::size_t col) const
     assert(row+mBandsUp>=col && row <=col+mBandsDown &&
         "Row and col values must be within a band.");
     std::size_t idx=axis_size(0)*(mBandsDown + mBandsUp + row - col) + col;
-    std::cout << "("<< idx <<")" <<"|" <<mSize<<"|";
+    //std::cout << "("<< idx <<")" <<"|" <<mSize<<"|";
     return mData[idx];
 }
 
@@ -403,9 +405,10 @@ void Numerica::Banded::solve_Ax_eq_b(Vec1d& result, Vec1d& rhs)
     
     if (info!=0)
         std::cout << "LAPACKE error: " << info << std::endl;
+
     for (size_t i=0; i<rhs.axis_size(0); i++)
     {
-        std::cout<< rhs.mDummyData[i] << std::endl;
+        //std::cout<< rhs.mDummyData[i] << std::endl;
         result(i)=rhs.mDummyData[i];
     }
 
