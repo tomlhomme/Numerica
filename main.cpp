@@ -36,6 +36,7 @@ int main()
     A.multiply(res,in);
     res.print();
     */
+    
     Numerica::Banded A(5,3,1);
     Numerica::Vec1d res(5);
     Numerica::Vec1d rhs(5);
@@ -70,12 +71,8 @@ int main()
 
     A.solve_Ax_eq_b(res,rhs);
     res.print();
+    
     //a.print();
-
-
-
-
-
     //b=a;
     //b.print();
     //b.print_raw();

@@ -9,4 +9,8 @@
 #define NUMERICA_RUNTIME_CHECKS_OFF 0
 #endif
 
+#ifndef NUMERICA_USING_LAPACKE
+#define NUMERICA_USING_LAPACKE 1
+#endif
+
 #endif
