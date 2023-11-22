@@ -1,5 +1,9 @@
 #include "array.hpp"
 
+Numerica::Array::Array():Array({0})
+{
+}
+
 Numerica::Array::Array(std::initializer_list<std::size_t> shape)
 {
     numAxis = shape.size();
@@ -33,6 +37,10 @@ std::size_t Numerica::Array::axis_size(size_t axis) const
 std::size_t Numerica::Array::num_axes() const
 {
     return numAxis;
+}
+
+Numerica::Dense::Dense(): Dense({0})
+{
 }
 
 Numerica::Dense::Dense(std::initializer_list<std::size_t> shape) : Array(shape)
@@ -93,6 +101,7 @@ double& Numerica::Dense::operator() (std::initializer_list<std::size_t> index_li
     return mData[idx];
 }
 
+/*
 void Numerica::Dense::operator= (const Dense& arr)
 {
     assert(num_axes()==arr.num_axes() && 
@@ -109,6 +118,16 @@ void Numerica::Dense::operator= (const Dense& arr)
         mData[i]=arr.mData[i];
     }
 }
+*/
+
+double*& Numerica::Dense::data_ptr()
+{
+    return mData;
+}
+
+Numerica::Vec1d::Vec1d(): Vec1d(0)
+{
+}
 
 Numerica::Vec1d::Vec1d(std::size_t len) : Dense({len})
 {
@@ -124,6 +143,7 @@ void Numerica::Vec1d::print() const
     std::cout << std::endl;
 }
 
+/*
 double& Numerica::Vec1d::operator() (const std::size_t ind) const
 {
     assert(ind<axis_size(0) &&
@@ -131,6 +151,7 @@ double& Numerica::Vec1d::operator() (const std::size_t ind) const
 
     return mData[ind];
 }
+*/
 
 double& Numerica::Vec1d::operator() (std::initializer_list<std::size_t> index_list) const
 {
@@ -142,7 +163,14 @@ double& Numerica::Vec1d::operator() (std::initializer_list<std::size_t> index_li
     return mData[*(index_list.begin())];
 }
 
-Numerica::Vec2d::Vec2d(std::size_t l1, std::size_t l2): Dense({l1,l2})
+/*
+Numerica::Vec2d::Vec2d(): Vec2d(0,0)
+{
+
+}
+*/
+
+Numerica::Vec2d::Vec2d(std::size_t l1, std::size_t l2): Dense({l1,l2}), mSz0(l1), mSz1(l2)
 {
 }
 
@@ -150,16 +178,20 @@ Numerica::Vec2d::~Vec2d()
 {
 }
 
+/*
 double& Numerica::Vec2d::operator() (const std::size_t ind1, const std::size_t ind2) const
 {
+    //std::cout << ind1 << " " << ind2 << std::endl;
     assert(ind1<axis_size(0) && ind2<axis_size(1) &&
         "Index out of bounds.");
-
-    return mData[ind1*axis_size(1) + ind2];
+    //std::cout << ind1*mSz0 + ind2 << std::endl;
+    return mData[ind1*mSz0 + ind2];
 }
+*/
 
 double& Numerica::Vec2d::operator() (std::initializer_list<std::size_t> index_list) const
 {
+    //std::cout << i << " " << j << std::endl;
     assert(index_list.size()==num_axes() &&
         "Number of axes must be 2.");
 
@@ -239,7 +271,12 @@ void Numerica::Vec2d::print() const
     }
 }
 
-Numerica::Vec3d::Vec3d(std::size_t l1, std::size_t l2, std::size_t l3): Dense({l1,l2, l3})
+Numerica::Vec3d::Vec3d(): Vec3d(0,0,0)
+{
+}
+
+Numerica::Vec3d::Vec3d(std::size_t l1, std::size_t l2, std::size_t l3): 
+Dense({l1,l2, l3}),mSz0(l1),mSz1(l2),mSz2(l3), mSz1Sz2(l2*l3)
 {
 }
 
@@ -247,13 +284,15 @@ Numerica::Vec3d::~Vec3d()
 {
 }
 
+/*
 double& Numerica::Vec3d::operator() (const std::size_t ind1, const std::size_t ind2, const std::size_t ind3) const
 {
-    assert(ind1<axis_size(0) && ind2<axis_size(1) && ind3<axis_size(3) &&
+    assert(ind1<axis_size(0) && ind2<axis_size(1) && ind3<axis_size(2) &&
         "Index out of bounds.");
 
     return mData[ind1*axis_size(1)*axis_size(2) + ind2*axis_size(2) + ind3];
 }
+*/
 
 double& Numerica::Vec3d::operator() (std::initializer_list<std::size_t> index_list) const
 {

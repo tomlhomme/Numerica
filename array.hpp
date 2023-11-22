@@ -19,11 +19,12 @@ namespace Numerica
     class Array
     {
     public:
+        Array();
         Array(std::initializer_list<std::size_t> shape);
         ~Array();
 
         void print_shape() const;
-        std::size_t axis_size(size_t axis) const;
+        std::size_t axis_size(std::size_t axis) const;
         std::size_t num_axes() const;
     protected:
         std::size_t mSize;
@@ -35,6 +36,7 @@ namespace Numerica
     class Dense: public Array
     {
     public:
+        Dense();
         Dense(std::initializer_list<std::size_t> shape);
         ~Dense();
 
@@ -42,7 +44,9 @@ namespace Numerica
         virtual void print() const;
 
         virtual double& operator() (std::initializer_list<std::size_t> index_list) const;
-        void operator= (const Dense& arr);
+        //void operator= (const Dense& arr);
+
+        double*& data_ptr();
         double* mDummyData=NULL;
     protected:
         double* mData=NULL;
@@ -51,40 +55,59 @@ namespace Numerica
     class Vec1d: public Dense
     {
     public:
+        Vec1d();
         Vec1d(std::size_t len);
         ~Vec1d();
 
         virtual void print() const;
 
-        double& operator() (const std::size_t ind) const;
+        double& operator() (const std::size_t ind) {return mData[ind];}
+        const double& operator() (const std::size_t ind) const {return mData[ind];}
+        
         virtual double& operator() (std::initializer_list<std::size_t> index_list) const;
     };
 
     class Vec2d: public Dense
     {
     public:
+        Vec2d();
         Vec2d(std::size_t l1, std::size_t l2);
         ~Vec2d();
 
-        double& operator() (const std::size_t ind1, const std::size_t ind2) const;
-        virtual double& operator() (std::initializer_list<std::size_t> index_list) const;
+        //virtual inline std::size_t axis_size(std::size_t axis) const;
+
+        double& operator() (const std::size_t ind1, const std::size_t ind2) { return mData[ind1*mSz1 + ind2]; }
+        const double& operator() (const std::size_t ind1, const std::size_t ind2) const { return mData[ind1*mSz1 + ind2]; }
+        
+        //double& operator() (const int ind1, const int ind2) const;
+        inline virtual double& operator() (std::initializer_list<std::size_t> index_list) const;
+        //inline double& operator() (const int ind1, const int ind2) const;
 
         void multiply(Vec1d& out, Vec1d& in);
         void multiply(Vec2d& out, Vec2d& in);
 
         virtual void print() const;
+
+        const std::size_t mSz0;
+        const std::size_t mSz1;
     };
 
     class Vec3d: public Dense
     {
     public:
+        Vec3d();
         Vec3d(std::size_t l1, std::size_t l2, std::size_t l3);
         ~Vec3d();
 
-        double& operator() (const std::size_t ind1, const std::size_t ind2, const std::size_t ind3) const;
+        double& operator() (const std::size_t ind1, const std::size_t ind2, const std::size_t ind3) const {return mData[ind1*mSz1Sz2 + ind2*mSz2 + ind3];}
         virtual double& operator() (std::initializer_list<std::size_t> index_list) const;
 
         virtual void print() const;
+
+        const std::size_t mSz0;
+        const std::size_t mSz1;
+        const std::size_t mSz2;
+        const std::size_t mSz1Sz2;
     }; 
 
     class Square: public Vec2d
